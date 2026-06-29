@@ -367,6 +367,40 @@ async def stats_today(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await message.reply_text(text, parse_mode="HTML")
 
 
+async def stats_week(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Top-10 for the last 7 days."""
+    message = update.effective_message
+    chat = update.effective_chat
+
+    if chat.type == "private":
+        await message.reply_text("Ця команда доступна лише в групах.")
+        return
+
+    try:
+        chat_obj = await context.bot.get_chat(chat.id)
+        chat_title = chat_obj.title or "чат"
+    except TelegramError:
+        chat_title = "чат"
+
+    top = db.get_week_top_users(chat.id, 10)
+    week_total = db.get_week_messages(chat.id)
+
+    if not top:
+        await message.reply_text("📊 За цей тиждень ще немає повідомлень.")
+        return
+
+    lines = []
+    for i, (uid, fname, count) in enumerate(top, 1):
+        lines.append(f"{i}) {fname} — {count} повідомлень")
+
+    text = (
+        f"📊 <b>Статистика «{chat_title}» за тиждень</b>\n\n"
+        + "\n".join(lines)
+        + f"\n\n<b>Кількість за тиждень: {week_total}</b>"
+    )
+    await message.reply_text(text, parse_mode="HTML")
+
+
 async def stats_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Top-10 all time."""
     message = update.effective_message
@@ -625,6 +659,7 @@ EMOJI_TRIGGERS     = ["!смайлик", "/emoji", "/set_emoji"]
 CENSUS_TRIGGERS    = ["!перепис населення", "/regchat"]
 MYSTATS_TRIGGERS   = ["!моя стата", "/mystats"]
 STATS_TRIGGERS     = ["!стата", "/stats"]
+STATS_WEEK_TRIGGERS= ["!стата тиждень", "!тижнева стата", "/stats_week"]
 STATS_ALL_TRIGGERS = ["!вся стата", "/stats_all"]
 HIDE_TRIGGERS      = ["!не згадувати мене"]
 SYS_STATS_TRIGGERS = ["!botsysstats"]
@@ -682,9 +717,12 @@ async def text_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if any(text_lower.startswith(t.lower()) for t in MYSTATS_TRIGGERS):
         await my_stats(update, context); return
 
-    # !вся стата must come before !стата
+    # !вся стата must come before !стата, !стата тиждень before !стата
     if any(text_lower.startswith(t.lower()) for t in STATS_ALL_TRIGGERS):
         await stats_all(update, context); return
+
+    if any(text_lower.startswith(t.lower()) for t in STATS_WEEK_TRIGGERS):
+        await stats_week(update, context); return
 
     if any(text_lower.startswith(t.lower()) for t in STATS_TRIGGERS):
         await stats_today(update, context); return
@@ -723,6 +761,7 @@ def main():
     # Stats commands
     app.add_handler(CommandHandler("mystats", my_stats))
     app.add_handler(CommandHandler("stats", stats_today))
+    app.add_handler(CommandHandler("stats_week", stats_week))
     app.add_handler(CommandHandler("stats_all", stats_all))
 
     # Import — private chat only

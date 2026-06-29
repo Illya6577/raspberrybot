@@ -248,6 +248,31 @@ def get_today_top_users(chat_id: int, limit: int = 10) -> list[tuple]:
     return [(r["user_id"], r["first_name"], r["n"]) for r in rows]
 
 
+def get_week_top_users(chat_id: int, limit: int = 10) -> list[tuple]:
+    """Return top users by messages sent in the last 7 days."""
+    week_ago = (datetime.utcnow().date() - timedelta(days=7)).isoformat()
+    with get_conn() as conn:
+        rows = conn.execute("""
+            SELECT user_id, first_name, COUNT(*) as n
+            FROM message_log
+            WHERE chat_id=? AND sent_at>=?
+            GROUP BY user_id
+            ORDER BY n DESC
+            LIMIT ?
+        """, (chat_id, week_ago, limit)).fetchall()
+    return [(r["user_id"], r["first_name"], r["n"]) for r in rows]
+
+
+def get_week_messages(chat_id: int) -> int:
+    week_ago = (datetime.utcnow().date() - timedelta(days=7)).isoformat()
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) as n FROM message_log WHERE chat_id=? AND sent_at>=?",
+            (chat_id, week_ago)
+        ).fetchone()
+    return row["n"] if row else 0
+
+
 def get_total_messages(chat_id: int) -> int:
     with get_conn() as conn:
         row = conn.execute(
