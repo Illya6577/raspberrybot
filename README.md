@@ -77,4 +77,10 @@ docker run -d \
 - Telegram не дозволяє ботам отримати список усіх учасників без взаємодії з ними
 - При `!заклик?` у відповідь на повідомлення — показує статус тієї людини
 - SQLite база зберігається у файлі `bot.db` (або `/data/bot.db` в Docker)
-"# raspberrybot" 
+
+---
+
+## Підтримати бота
+monobank: https://send.monobank.ua/jar/5epSfRWpg4
+ 
+"# raspberrybot"
